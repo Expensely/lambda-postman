@@ -1,0 +1,23 @@
+{
+  "name": "service-time-postman-tests",
+  "version": "1.0.0",
+  "description": "This service is manage time records",
+  "repository": "https://github.com/Expensely/service-time",
+  "main": "index.js",
+  "scripts": {
+    "build": "npm run updateVersion && npm run lint",
+    "lint": "eslint \"**/*.js\"",
+    "updateVersion": "npm version $BUILD_NUMBER --allow-same-version"
+  },
+  "dependencies": {
+    "aws-lambda": "^1.0.7",
+    "aws-sdk": "^2.1027.0",
+    "newman": "^5.3.0",
+    "newman-reporter-junitfull": "^1.1.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.2.0"
+  },
+  "author": "",
+  "license": "ISC"
+}

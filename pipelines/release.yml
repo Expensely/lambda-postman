@@ -1,0 +1,74 @@
+resources:
+  repositories:
+    - repository: templates
+      type: github
+      name: expensely/azure-devops-templates
+      endpoint: expensely
+
+trigger:
+  batch: true
+  branches:
+    include:
+      - "main"
+
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: build
+    displayName: Build
+    jobs:
+      - job: postman_container
+        displayName: Postman Container
+        steps:
+          - task: PowerShell@2
+            displayName: Set build identifier
+            name: setNPMBuildIdentifier
+            inputs:
+              targetType: inline
+              script: Write-Host "##vso[build.updatebuildnumber]1.0.$(build.buildid)-$(System.StageAttempt)"
+              errorActionPreference: default
+              showWarnings: true
+              pwsh: true
+          - template: ./docker/build.yml@templates
+            parameters:
+              target: lambda-postman
+              workingDirectory: lambda
+              arguments: "--build-arg BUILD_NUMBER=$(Build.BuildNumber)"
+              tag: $(Build.BuildNumber)
+          - task: PowerShell@2
+            displayName: Tag image for docker.io
+            inputs:
+              targetType: inline
+              script: docker tag lambda-postman:$(Build.BuildNumber) expensely/lambda-postman:$(Build.BuildNumber)
+              errorActionPreference: default
+              showWarnings: true
+              pwsh: true
+          - task: Docker@2
+            displayName: Push to Docker
+            inputs:
+              containerRegistry: 'docker-hub'
+              repository: 'expensely/lambda-postman'
+              command: 'push'
+              tags: '$(Build.BuildNumber)'
+              addPipelineData: false
+              addBaseImageData: false
+          - task: PowerShell@2
+            displayName: Tag image for docker.io
+            inputs:
+              targetType: inline
+              script: docker tag lambda-postman:$(Build.BuildNumber) expensely/lambda-postman:latest
+              errorActionPreference: default
+              showWarnings: true
+              pwsh: true
+          - task: Docker@2
+            displayName: Push to Docker
+            inputs:
+              containerRegistry: 'docker-hub'
+              repository: 'expensely/lambda-postman'
+              command: 'push'
+              tags: 'latest'
+              addPipelineData: false
+              addBaseImageData: false
