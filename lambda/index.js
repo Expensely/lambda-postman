@@ -5,6 +5,8 @@ const aws = require('aws-sdk');
 const fs = require("fs");
 
 exports.handler = (event, context, callback) => {
+    console.log(`Event:${JSON.stringify(event)}`);
+
     const resultsBucket = process.env.S3_BUCKET;
     console.log(`Bucket:${resultsBucket}`);
     const resultsBucketPath = process.env.S3_BUCKET_PATH;
