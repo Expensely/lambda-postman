@@ -6,11 +6,16 @@ const fs = require("fs");
 
 exports.handler = (event, context, callback) => {
     const resultsBucket = process.env.S3_BUCKET;
+    console.log(`Bucket:${resultsBucket}`);
     const resultsBucketPath = process.env.S3_BUCKET_PATH;
+    console.log(`Bucket path:${resultsBucketPath}`);
 
     const collectionFile = process.env.POSTMAN_COLLECTION_FILE;
+    console.log(`Collection file:${collectionFile}`);
     const environmentFile = process.env.POSTMAN_ENVIRONMENT_FILE;
+    console.log(`Environment file:${environmentFile}`);
     const resultsFile = process.env.POSTMAN_RESULTS_FILE;
+    console.log(`Results file:${resultsFile}`);
 
     const codeDeploy = new aws.CodeDeploy({apiVersion: '2014-10-06'});
     const resultsFilePath = `/tmp/${resultsFile}`;
@@ -20,9 +25,11 @@ exports.handler = (event, context, callback) => {
     for (let key in environmentVariables) {
         if(key.startsWith("POSTMAN_VARIABLE_")){
             const name = key.replace("POSTMAN_VARIABLE_", "")
+            const value = environmentVariables[key];
+            console.log(`${key} - ${name}:${value}`);
             variables.push({
                 "key": name,
-                "value": environmentVariables[key]
+                "value": value
             });
         }
     }
