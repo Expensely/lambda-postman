@@ -16,17 +16,30 @@ const downloadFile = (
         })
 };
 
-const uploadFile = (
-    bucket,
-    key
-) => {
-    const s3 = new aws.S3();
-    s3.getObject(
-        {
-            Bucket: bucket,
-            Key: key
-        })
-};
+const notifyCodeDeploy = (
+    deploymentId,
+    lifecycleEventHookExecutionId,
+    status,
+    callback) => {
+    const params = {
+        deploymentId: deploymentId,
+        lifecycleEventHookExecutionId: lifecycleEventHookExecutionId,
+        status: status
+    };
+    const codeDeploy = new aws.CodeDeploy({apiVersion: '2014-10-06'});
+
+    codeDeploy.putLifecycleEventHookExecutionStatus(
+        params,
+        (codeDeployError, codeDeployData) => {
+            if (codeDeployError) {
+                console.error(codeDeployError);
+                callback('Validation test failed');
+            } else {
+                console.log(codeDeployData);
+                callback('Validation test succeeded');
+            }
+        });
+}
 
 exports.handler = (event, context, callback) => {
     console.log(`Event:${JSON.stringify(event)}`);
@@ -54,7 +67,6 @@ exports.handler = (event, context, callback) => {
     console.log(`Environment file:${environmentFile}`);
     // Download environmentFile file from S3
 
-    const codeDeploy = new aws.CodeDeploy({apiVersion: '2014-10-06'});
     const resultsFilePath = `/tmp/${resultsFile}`;
 
     const environmentVariables = process.env;
@@ -96,52 +108,15 @@ exports.handler = (event, context, callback) => {
                         Key: `${resultsPath}/${resultsFile}`
                     },
                     function (s3Error, s3Data) {
-                        if (s3Error) {
-                            console.error(JSON.stringify(s3Error));
-                        } else if (s3Data) {
-                            console.log(JSON.stringify(s3Data));
-                        } 
-                        
-                        if (newmanError) {// || newmanData?.run?.failures?.length) {
-                            console.error(newmanError);
-                            console.error(newmanData);
-                            console.error(newmanData?.run?.failures);
-                            const params = {
-                                deploymentId: event.DeploymentId,
-                                lifecycleEventHookExecutionId: event.LifecycleEventHookExecutionId,
-                                status: 'Failed'
-                            };
-                            codeDeploy.putLifecycleEventHookExecutionStatus(
-                                params,
-                                function (codeDeployError, codeDeployData) {
-                                    if (codeDeployError) {
-                                        console.error(codeDeployError);
-                                        callback('Validation test failed');
-                                    } else {
-                                        console.log(codeDeployData);
-                                        callback(null, 'Validation test succeeded');
-                                    }
-                                });
-                        } else {
-                            console.log(newmanData);
-                            console.log(newmanData?.run?.failures);
-                            const params = {
-                                deploymentId: event.DeploymentId,
-                                lifecycleEventHookExecutionId: event.LifecycleEventHookExecutionId,
-                                status: 'Succeeded'
-                            };
-                            codeDeploy.putLifecycleEventHookExecutionStatus(
-                                params,
-                                function (codeDeployError, codeDeployData) {
-                                    if (codeDeployError) {
-                                        console.error(codeDeployError);
-                                        callback('Validation test failed');
-                                    } else {
-                                        console.log(codeDeployData);
-                                        callback(null, 'Validation test succeeded');
-                                    }
-                                });
-                        }
+                        console.log(JSON.stringify(s3Error ? s3Error : s3Data));
+                        console.log(newmanError);
+                        console.log(newmanData);
+                        console.log(newmanData?.run?.failures);
+                        notifyCodeDeploy(
+                            event.DeploymentId,
+                            event.LifecycleEventHookExecutionId,
+                            newmanError ? 'Failed' : 'Succeeded',
+                            callback);
                     });
             }
         }
