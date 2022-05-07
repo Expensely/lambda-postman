@@ -4,20 +4,55 @@ const newman = require('newman');
 const aws = require('aws-sdk');
 const fs = require("fs");
 
+const downloadFile = (
+    bucket,
+    key
+) => {
+    const s3 = new aws.S3();
+    s3.getObject(
+        {
+            Bucket: bucket,
+            Key: key
+        })
+};
+
+const uploadFile = (
+    bucket,
+    key
+) => {
+    const s3 = new aws.S3();
+    s3.getObject(
+        {
+            Bucket: bucket,
+            Key: key
+        })
+};
+
 exports.handler = (event, context, callback) => {
     console.log(`Event:${JSON.stringify(event)}`);
 
     const resultsBucket = process.env.S3_BUCKET;
     console.log(`Bucket:${resultsBucket}`);
-    const resultsBucketPath = process.env.S3_BUCKET_PATH;
-    console.log(`Bucket path:${resultsBucketPath}`);
+
+    const baseBucketPath = process.env.S3_BUCKET_PATH; // time/1.1.1.1/Development/api-tests/
+    console.log(`Bucket base path:${baseBucketPath}`);
+
+    const testPath = baseBucketPath + '/' + 'tests';
+    console.log(`Bucket test folder path:${testPath}`);
+
+    const resultsPath = baseBucketPath + '/' + 'results';
+    console.log(`Bucket results folder path:${resultsPath}`);
+
+    const resultsFile = 'results.xml';
+    console.log(`Results file:${resultsFile}`);
 
     const collectionFile = process.env.POSTMAN_COLLECTION_FILE;
     console.log(`Collection file:${collectionFile}`);
+    // Download collectionFile file from S3
+
     const environmentFile = process.env.POSTMAN_ENVIRONMENT_FILE;
     console.log(`Environment file:${environmentFile}`);
-    const resultsFile = process.env.POSTMAN_RESULTS_FILE;
-    console.log(`Results file:${resultsFile}`);
+    // Download environmentFile file from S3
 
     const codeDeploy = new aws.CodeDeploy({apiVersion: '2014-10-06'});
     const resultsFilePath = `/tmp/${resultsFile}`;
@@ -58,7 +93,7 @@ exports.handler = (event, context, callback) => {
                         ContentType: "application/xml",
                         Bucket: resultsBucket,
                         Body: testResultsData,
-                        Key: `${resultsBucketPath}/${resultsFile}`
+                        Key: `${resultsPath}/${resultsFile}`
                     },
                     function (s3Error, s3Data) {
                         if (s3Error) {
