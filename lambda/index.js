@@ -15,7 +15,7 @@ const downloadFile = async (
             Bucket: bucket,
             Key: `${path}/${filename}`
         }).promise();
-    const filePath = `$/tmp/${filename}`
+    const filePath = `/tmp/${filename}`
     await fsPromises.writeFile(filePath, object.Body);
     return filePath;
 };
