@@ -4,7 +4,7 @@ const newman = require('newman');
 const aws = require('aws-sdk');
 const fs = require("fs");
 
-const downloadFile = (
+const downloadFile = async (
     bucket,
     key
 ) => {
@@ -20,7 +20,8 @@ const notifyCodeDeploy = (
     deploymentId,
     lifecycleEventHookExecutionId,
     status,
-    callback) => {
+    resolve,
+    reject) => {
     const params = {
         deploymentId: deploymentId,
         lifecycleEventHookExecutionId: lifecycleEventHookExecutionId,
@@ -33,19 +34,19 @@ const notifyCodeDeploy = (
         (codeDeployError, codeDeployData) => {
             if (codeDeployError) {
                 console.error(codeDeployError);
-                callback('Validation test failed');
+                reject("Failed to place lifecycle event");
             } else {
                 console.log(codeDeployData);
-                callback('Validation test succeeded');
+                resolve(null, 'Successfully placed lifecycle event');
             }
         });
 }
 
-exports.handler = (event, context, callback) => {
+exports.handler = async (event) => {
     console.log(`Event:${JSON.stringify(event)}`);
 
-    const resultsBucket = process.env.S3_BUCKET;
-    console.log(`Bucket:${resultsBucket}`);
+    const bucketName = process.env.S3_BUCKET;
+    console.log(`Bucket:${bucketName}`);
 
     const baseBucketPath = process.env.S3_BUCKET_PATH; // time/1.1.1.1/Development/api-tests/
     console.log(`Bucket base path:${baseBucketPath}`);
@@ -61,11 +62,11 @@ exports.handler = (event, context, callback) => {
 
     const collectionFile = process.env.POSTMAN_COLLECTION_FILE;
     console.log(`Collection file:${collectionFile}`);
-    // Download collectionFile file from S3
+    const collectionFilePath = await downloadFile(bucketName, `${baseBucketPath}/${collectionFile}`);
 
     const environmentFile = process.env.POSTMAN_ENVIRONMENT_FILE;
     console.log(`Environment file:${environmentFile}`);
-    // Download environmentFile file from S3
+    const environmentFilePath = await downloadFile(bucketName, `${baseBucketPath}/${environmentFile}`);
 
     const resultsFilePath = `/tmp/${resultsFile}`;
 
@@ -83,42 +84,45 @@ exports.handler = (event, context, callback) => {
         }
     }
 
-    newman.run(
-        {
-            collection: collectionFile,
-            delayRequest: 10000,
-            envVar: variables,
-            environment: environmentFile,
-            reporters: 'junitfull',
-            reporter: {
-                junitfull: {
-                    export: resultsFilePath,
+    return new Promise(function(resolve, reject) {
+        newman.run(
+            {
+                collection: collectionFilePath,
+                delayRequest: 10000,
+                envVar: variables,
+                environment: environmentFilePath,
+                reporters: 'junitfull',
+                reporter: {
+                    junitfull: {
+                        export: resultsFilePath,
+                    },
                 },
             },
-        },
-        (newmanError, newmanData) => {
-            if (resultsBucket) {
-                const s3 = new aws.S3();
-                const testResultsData = fs.readFileSync(resultsFilePath, 'utf8');
-                s3.upload(
-                    {
-                        ContentType: "application/xml",
-                        Bucket: resultsBucket,
-                        Body: testResultsData,
-                        Key: `${resultsPath}/${resultsFile}`
-                    },
-                    function (s3Error, s3Data) {
-                        console.log(JSON.stringify(s3Error ? s3Error : s3Data));
-                        console.log(newmanError);
-                        console.log(newmanData);
-                        console.log(newmanData?.run?.failures);
-                        notifyCodeDeploy(
-                            event.DeploymentId,
-                            event.LifecycleEventHookExecutionId,
-                            newmanError ? 'Failed' : 'Succeeded',
-                            callback);
-                    });
+            (newmanError, newmanData) => {
+                if (bucketName) {
+                    const s3 = new aws.S3();
+                    const testResultsData = fs.readFileSync(resultsFilePath, 'utf8');
+                    s3.upload(
+                        {
+                            ContentType: "application/xml",
+                            Bucket: bucketName,
+                            Body: testResultsData,
+                            Key: `${resultsPath}/${resultsFile}`
+                        },
+                        function (s3Error, s3Data) {
+                            console.log(JSON.stringify(s3Error ? s3Error : s3Data));
+                            console.log(newmanError);
+                            console.log(newmanData);
+                            console.log(newmanData?.run?.failures);
+                            notifyCodeDeploy(
+                                event.DeploymentId,
+                                event.LifecycleEventHookExecutionId,
+                                newmanError ? 'Failed' : 'Succeeded',
+                                resolve,
+                                reject);
+                        });
+                }
             }
-        }
-    );
+        );
+    });
 }
