@@ -92,7 +92,7 @@ exports.handler = async (event) => {
             'Failed');
         return 'Failed';
     }
-    const collectionFilePath = await downloadFile(bucketName, baseBucketPath, collectionFile);
+    const collectionFilePath = await downloadFile(bucketName, testPath, collectionFile);
     console.log(`Collection file path:${collectionFilePath}`);
 
     const environmentFile = process.env.POSTMAN_ENVIRONMENT_FILE;
@@ -104,7 +104,7 @@ exports.handler = async (event) => {
             'Failed');
         return 'Failed';
     }
-    const environmentFilePath = await downloadFile(bucketName, baseBucketPath, environmentFile);
+    const environmentFilePath = await downloadFile(bucketName, testPath, environmentFile);
     console.log(`Environment file path:${environmentFilePath}`);
 
     const environmentVariables = process.env;
