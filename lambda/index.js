@@ -63,9 +63,9 @@ exports.handler = async (event) => {
         return 'Failed';
     }
 
-    const baseBucketPath = process.env.S3_BUCKET_PATH; // time/1.1.1.1/Development/api-tests/
-    console.log(`Bucket base path:${baseBucketPath}`);
-    if(!baseBucketPath || baseBucketPath.trim() === ''){
+    const bucketBasePath = process.env.S3_BUCKET_PATH; // time/1.1.1.1/Development/api-tests/
+    console.log(`Bucket base path:${bucketBasePath}`);
+    if(!bucketBasePath || bucketBasePath.trim() === ''){
         notifyCodeDeploy(
             event.DeploymentId,
             event.LifecycleEventHookExecutionId,
@@ -73,10 +73,10 @@ exports.handler = async (event) => {
         return 'Failed';
     }
 
-    const testPath = baseBucketPath + '/' + 'tests';
+    const testPath = bucketBasePath + '/' + 'tests';
     console.log(`Bucket test folder path:${testPath}`);
 
-    const resultsPath = baseBucketPath + '/' + 'results';
+    const resultsPath = bucketBasePath + '/' + 'results';
     console.log(`Bucket results folder path:${resultsPath}`);
 
     const resultsFile = 'results.xml';
