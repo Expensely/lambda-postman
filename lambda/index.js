@@ -155,7 +155,7 @@ exports.handler = async (event) => {
                                 notifyCodeDeploy(
                                     event.DeploymentId,
                                     event.LifecycleEventHookExecutionId,
-                                    newmanError ? 'Failed' : 'Succeeded',
+                                    newmanError || newmanData?.run?.failures.length > 0 ? 'Failed' : 'Succeeded',
                                     resolve,
                                     reject);
                             }
