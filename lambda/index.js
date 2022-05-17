@@ -121,12 +121,14 @@ exports.handler = async (event) => {
         }
     }
 
+    await new Promise(resolve => setTimeout(resolve, 10000));
+
     return new Promise(
         function(resolve, reject) {
             newman.run(
                 {
                     collection: collectionFilePath,
-                    delayRequest: 10000,
+                    delayRequest: 0,
                     envVar: variables,
                     environment: environmentFilePath,
                     reporters: 'junitfull',
