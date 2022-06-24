@@ -5,6 +5,25 @@ const aws = require('aws-sdk');
 const fs = require("fs");
 const fsPromises = require("fs").promises;
 
+const getTestAssetsLocation = async (
+    deploymentId) => {
+    const codeDeploy = aws.CodeDeploy();
+    const params = {
+        deploymentId: deploymentId
+    };
+
+    const response = await codeDeploy.getDeployment(params).promise();
+    const bucket = response.deploymentInfo.s3location.bucket;
+    const key = response.deploymentInfo.s3location.key; // deploy/deploy.yml
+
+    return{
+        bucket: bucket,
+        testsFolder: '', //https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-codedeploy/index.html
+        testResultsFolder: '' //https://aws-otel.github.io/docs/getting-started/lambda
+    }
+
+};
+
 const downloadFile = async (
     bucket,
     path,
